@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] text-sm transition-all duration-150;
+  }
+
+  .sidebar-link-active {
+    @apply bg-brand-500/20 text-white font-semibold;
+  }
+
+  .sidebar-link-inactive {
+    @apply text-white/50 hover:bg-white/5 font-normal;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-[10px] text-sm font-semibold shadow-[0_4px_12px_rgba(108,92,231,0.3)] hover:bg-brand-600 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-600 rounded-[10px] text-sm font-medium border border-gray-200 hover:border-brand-500 hover:text-brand-500 transition-colors;
+  }
+
+  .table-header {
+    @apply text-left px-3 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100;
+  }
+
+  .table-cell {
+    @apply px-3 py-3 text-sm;
+  }
+
+  .table-row {
+    @apply hover:bg-brand-50/30 transition-colors cursor-pointer;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d0d0e0;
+  border-radius: 3px;
+}

@@ -1,26 +1,102 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f8f9fc;
+  color: #111827;
+  font-family: "DM Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
 }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+.card {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid #f0f0f5;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.sidebar-link-active {
+  background: rgba(108, 92, 231, 0.2);
+  color: white;
+  font-weight: 600;
+}
+
+.sidebar-link-inactive {
+  color: rgba(255,255,255,0.5);
+  font-weight: 400;
+}
+.sidebar-link-inactive:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #6C5CE7;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.btn-primary:hover { background: #5b4bd5; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: white;
+  color: #4b5563;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.btn-secondary:hover { border-color: #6C5CE7; color: #6C5CE7; }
+
+.table-header {
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.table-cell {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.table-row {
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.table-row:hover { background: rgba(108,92,231,0.03); }
