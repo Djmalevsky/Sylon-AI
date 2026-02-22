@@ -45,7 +45,7 @@ export function IntegrationsGrid({ isClientLevel = false }: IntegrationsGridProp
             className="mx-auto mb-3.5 flex h-[52px] w-[52px] items-center justify-center rounded-[14px]"
             style={{ backgroundColor: `${intg.color}15` }}
           >
-            <Link2 size={22} style={{ color: intg.color }} />
+            <Link2 size={22} color={intg.color} />
           </div>
 
           <h4 className="text-[15px] font-bold text-brand-900 mb-1">
