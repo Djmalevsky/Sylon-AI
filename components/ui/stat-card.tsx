@@ -13,7 +13,7 @@ export function StatCard({ stat }: StatCardProps) {
         className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
         style={{ backgroundColor: `${stat.color}15` }}
       >
-        <Icon size={20} style={{ color: stat.color }} />
+        <Icon size={20} color={stat.color} />
       </div>
       <div className="min-w-0">
         <div className="text-2xl font-bold text-brand-900 leading-tight">
