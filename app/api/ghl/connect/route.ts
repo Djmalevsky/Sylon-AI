@@ -14,17 +14,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Token is required" }, { status: 400 });
     }
 
-    // Call GHL API to search for all locations under this agency
+    // GHL V2 API - Search locations (GET request)
     const ghlRes = await fetch(
-      "https://services.leadconnectorhq.com/locations/search",
+      "https://services.leadconnectorhq.com/locations/search?skip=0&limit=100",
       {
-        method: "POST",
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          Accept: "application/json",
           Version: "2021-07-28",
         },
-        body: JSON.stringify({ skip: 0, limit: 100 }),
       }
     );
 
@@ -34,13 +33,13 @@ export async function POST(request: Request) {
 
       if (ghlRes.status === 401) {
         return NextResponse.json(
-          { error: "Invalid token. Make sure you are using an Agency-level Private Integration token with the correct scopes." },
+          { error: "Invalid or expired token. Make sure you created the Private Integration at the Agency level with Locations scope enabled." },
           { status: 401 }
         );
       }
 
       return NextResponse.json(
-        { error: "Failed to fetch locations from GoHighLevel. Status: " + ghlRes.status },
+        { error: "Failed to fetch locations from GoHighLevel. Status: " + ghlRes.status + ". " + errText },
         { status: 500 }
       );
     }
@@ -55,9 +54,16 @@ export async function POST(request: Request) {
       email: loc.email || "",
     }));
 
-    // Save agency token to Supabase
-    const agencyId = "00000000-0000-0000-0000-000000000001"; // MVP hardcoded
-    const { error: dbError } = await supabase.from("agencies").upsert(
+    if (locations.length === 0) {
+      return NextResponse.json(
+        { error: "No sub-accounts found. Make sure you are using an Agency-level token (not a sub-account token)." },
+        { status: 404 }
+      );
+    }
+
+    // Save agency connection to Supabase
+    const agencyId = "00000000-0000-0000-0000-000000000001";
+    await supabase.from("agencies").upsert(
       {
         id: agencyId,
         name: "Agency",
@@ -67,8 +73,6 @@ export async function POST(request: Request) {
       },
       { onConflict: "id" }
     );
-
-    if (dbError) console.error("Agency upsert error:", dbError);
 
     return NextResponse.json({ success: true, locations });
   } catch (err: any) {
