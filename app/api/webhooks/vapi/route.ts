@@ -16,7 +16,6 @@ export async function POST(request: Request) {
       const call = msg.call || {};
       const assistantId = call.assistantId || msg.assistant?.id || null;
 
-      // Look up agency and location from the assistant ID
       let agencyId = null;
       let ghlLocationId = null;
 
@@ -33,12 +32,10 @@ export async function POST(request: Request) {
         }
       }
 
-      // Try multiple paths for duration and cost
-      const durationSeconds = Math.round(
-        call.duration || msg.duration || msg.durationSeconds || call.durationSeconds || 0
-      );
-      const costValue = call.cost || msg.cost || call.costBreakdown?.total || msg.costBreakdown?.total || 0;
-      const costCents = Math.round(costValue * 100);
+      const durationSeconds = Math.round(msg.durationSeconds || call.duration || 0);
+      const costTotal = msg.cost || call.cost || 0;
+      const costCents = Math.round(costTotal * 100);
+      const costBreakdown = msg.costBreakdown || {};
 
       const callLog = {
         agency_id: agencyId,
@@ -55,17 +52,22 @@ export async function POST(request: Request) {
         sentiment: msg.analysis?.sentiment || null,
         appointment_booked: false,
         metadata: {
+          assistantId,
           endedReason: call.endedReason,
-          assistantId: assistantId,
           analysis: msg.analysis || {},
-          rawDuration: { callDuration: call.duration, msgDuration: msg.duration, callDurationSeconds: call.durationSeconds, msgDurationSeconds: msg.durationSeconds },
-          rawCost: { callCost: call.cost, msgCost: msg.cost, callCostBreakdown: call.costBreakdown, msgCostBreakdown: msg.costBreakdown },
+          costBreakdown: {
+            llm: costBreakdown.llm || 0,
+            stt: costBreakdown.stt || 0,
+            tts: costBreakdown.tts || 0,
+            vapi: costBreakdown.vapi || 0,
+            transport: costBreakdown.transport || 0,
+            total: costBreakdown.total || costTotal,
+          },
         },
       };
 
       await supabase.from("call_logs").insert(callLog);
 
-      // Update usage records
       if (agencyId) {
         const now = new Date();
         const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
