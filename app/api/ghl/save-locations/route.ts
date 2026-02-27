@@ -25,13 +25,11 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { cookies: { getAll() { return cookieStore.getAll(); } } }
     );
-    const { data: { user } } = await supabaseAuth.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const agencyId = user.id;
+    const agencyId = user?.id || null;
+    const errors: any[] = [];
+    let saved = 0;
 
     for (const loc of locations) {
       const { error } = await supabaseAdmin.from("ghl_connections").upsert(
@@ -48,18 +46,22 @@ export async function POST(request: Request) {
       );
 
       if (error) {
-        console.error("Error saving location:", loc.id, error);
+        errors.push({ locationId: loc.id, error: error.message, code: error.code, details: error.details });
+      } else {
+        saved++;
       }
     }
 
     return NextResponse.json({
-      success: true,
-      saved: locations.length,
+      success: errors.length === 0,
+      saved,
+      totalErrors: errors.length,
+      errors: errors.slice(0, 5),
+      debug: { userId: agencyId, authError: authError?.message || null },
     });
   } catch (err: any) {
-    console.error("Save locations error:", err);
     return NextResponse.json(
-      { error: err.message || "Internal error" },
+      { error: err.message || "Internal error", stack: err.stack },
       { status: 500 }
     );
   }
