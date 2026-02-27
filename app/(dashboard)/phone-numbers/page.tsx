@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Phone,
-  Building2,
-  Loader2,
-  RefreshCw,
-  Search,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { Phone, Building2, Loader2, RefreshCw, Search, CheckCircle2 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +10,6 @@ interface PhoneNumberRow {
   ghl_location_id: string;
   ghl_location_name: string;
   twilio_phone_number: string | null;
-  twilio_phone_sid: string | null;
-  vapi_assistant_id: string | null;
-  vapi_phone_number_id: string | null;
   is_activated: boolean;
   activated_at: string | null;
 }
@@ -40,7 +29,7 @@ export default function PhoneNumbersPage() {
 
       const { data, error } = await supabase
         .from("ghl_connections")
-        .select("id, ghl_location_id, ghl_location_name, twilio_phone_number, twilio_phone_sid, vapi_assistant_id, vapi_phone_number_id, is_activated, activated_at")
+        .select("id, ghl_location_id, ghl_location_name, twilio_phone_number, is_activated, activated_at")
         .eq("agency_id", user.id)
         .eq("is_activated", true)
         .order("activated_at", { ascending: false });
@@ -103,8 +92,8 @@ export default function PhoneNumbersPage() {
           <div className="text-2xl font-bold text-gray-900">${(numbers.length * 1.5).toFixed(2)}</div>
         </div>
         <div className="card px-5 py-4">
-          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">VAPI Assistants</div>
-          <div className="text-2xl font-bold text-emerald-600">{numbers.filter((n) => n.vapi_assistant_id).length}</div>
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">AI Assistants</div>
+          <div className="text-2xl font-bold text-emerald-600">{numbers.length}</div>
         </div>
       </div>
 
@@ -140,7 +129,6 @@ export default function PhoneNumbersPage() {
                 <tr>
                   <th className="table-header pl-5">Phone Number</th>
                   <th className="table-header">Connected Account</th>
-                  <th className="table-header">VAPI Assistant</th>
                   <th className="table-header">Status</th>
                   <th className="table-header pr-5">Activated</th>
                 </tr>
@@ -153,12 +141,7 @@ export default function PhoneNumbersPage() {
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0" style={{ backgroundColor: "#6C5CE715" }}>
                           <Phone size={16} className="text-brand-500" />
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-gray-900">{row.twilio_phone_number || "—"}</div>
-                          <div className="text-[11px] text-gray-400 font-mono">
-                            {row.twilio_phone_sid ? "SID: " + row.twilio_phone_sid.slice(0, 16) + "..." : ""}
-                          </div>
-                        </div>
+                        <div className="text-sm font-semibold text-gray-900">{row.twilio_phone_number || "—"}</div>
                       </div>
                     </td>
                     <td className="table-cell">
@@ -166,24 +149,8 @@ export default function PhoneNumbersPage() {
                         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-[11px] font-bold text-gray-500">
                           {row.ghl_location_name?.charAt(0) || "?"}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-800 truncate max-w-[200px]">{row.ghl_location_name}</div>
-                          <div className="text-[11px] text-gray-400 font-mono truncate max-w-[200px]">{row.ghl_location_id}</div>
-                        </div>
+                        <div className="text-sm font-medium text-gray-800 truncate max-w-[250px]">{row.ghl_location_name}</div>
                       </div>
-                    </td>
-                    <td className="table-cell">
-                      {row.vapi_assistant_id ? (
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle2 size={14} className="text-emerald-500" />
-                          <span className="text-[12px] text-gray-500 font-mono truncate max-w-[120px]">{row.vapi_assistant_id.slice(0, 12)}...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <XCircle size={14} className="text-gray-300" />
-                          <span className="text-[12px] text-gray-400">Not linked</span>
-                        </div>
-                      )}
                     </td>
                     <td className="table-cell">
                       <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-emerald-500/10 text-emerald-600">
