@@ -249,7 +249,7 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: `${bName} - Inbound`,
+          name: `${bName.slice(0, 30)} - Inbound`,
           model: {
             provider: "openai",
             model: "gpt-4o-mini",
