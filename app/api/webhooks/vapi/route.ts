@@ -12,8 +12,9 @@ export async function POST(request: Request) {
     const messageType = body.message?.type || body.type;
 
     if (messageType === "end-of-call-report") {
-      const call = body.message?.call || body.call || {};
-      const assistantId = call.assistantId || null;
+      const msg = body.message || body;
+      const call = msg.call || {};
+      const assistantId = call.assistantId || msg.assistant?.id || null;
 
       // Look up agency and location from the assistant ID
       let agencyId = null;
@@ -32,27 +33,33 @@ export async function POST(request: Request) {
         }
       }
 
-      const durationSeconds = Math.round(call.duration || 0);
-      const costCents = Math.round((call.cost || 0) * 100);
+      // Try multiple paths for duration and cost
+      const durationSeconds = Math.round(
+        call.duration || msg.duration || msg.durationSeconds || call.durationSeconds || 0
+      );
+      const costValue = call.cost || msg.cost || call.costBreakdown?.total || msg.costBreakdown?.total || 0;
+      const costCents = Math.round(costValue * 100);
 
       const callLog = {
         agency_id: agencyId,
         ghl_location_id: ghlLocationId,
-        vapi_call_id: call.id,
-        contact_phone: call.customer?.number || "",
+        vapi_call_id: call.id || msg.callId,
+        contact_phone: call.customer?.number || msg.customer?.number || "",
         direction: call.type === "inboundPhoneCall" ? "inbound" : "outbound",
         status: call.endedReason === "customer-ended-call" || call.endedReason === "assistant-ended-call" ? "completed" : call.endedReason || "completed",
         duration_seconds: durationSeconds,
         cost_cents: costCents,
-        transcript: body.message?.transcript || body.transcript || "",
-        summary: body.message?.summary || body.summary || "",
-        recording_url: body.message?.recordingUrl || body.recordingUrl || "",
-        sentiment: body.message?.analysis?.sentiment || null,
+        transcript: msg.transcript || "",
+        summary: msg.summary || msg.analysis?.summary || "",
+        recording_url: msg.recordingUrl || call.recordingUrl || "",
+        sentiment: msg.analysis?.sentiment || null,
         appointment_booked: false,
         metadata: {
           endedReason: call.endedReason,
           assistantId: assistantId,
-          analysis: body.message?.analysis || {},
+          analysis: msg.analysis || {},
+          rawDuration: { callDuration: call.duration, msgDuration: msg.duration, callDurationSeconds: call.durationSeconds, msgDurationSeconds: msg.durationSeconds },
+          rawCost: { callCost: call.cost, msgCost: msg.cost, callCostBreakdown: call.costBreakdown, msgCostBreakdown: msg.costBreakdown },
         },
       };
 
