@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6fe;
+  --color-brand-300: #c4b5fd;
+  --color-brand-400: #a29bfe;
+  --color-brand-500: #6C5CE7;
+  --color-brand-600: #5b4bd5;
+  --color-brand-700: #4c3ec3;
+  --color-brand-800: #3d31a1;
+  --color-brand-900: #1a1a2e;
+  --color-brand-950: #16162a;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+}
+
 body {
   background-color: #f8f9fc;
   color: #111827;
@@ -7,18 +22,15 @@ body {
   -webkit-font-smoothing: antialiased;
   margin: 0;
 }
-
 *, *::before, *::after {
   box-sizing: border-box;
 }
-
 .card {
   background: white;
   border-radius: 1rem;
   border: 1px solid #f0f0f5;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-
 .sidebar-link {
   display: flex;
   align-items: center;
@@ -29,13 +41,11 @@ body {
   transition: all 0.15s;
   text-decoration: none;
 }
-
 .sidebar-link-active {
   background: rgba(108, 92, 231, 0.2);
   color: white;
   font-weight: 600;
 }
-
 .sidebar-link-inactive {
   color: rgba(255,255,255,0.5);
   font-weight: 400;
@@ -43,7 +53,6 @@ body {
 .sidebar-link-inactive:hover {
   background: rgba(255,255,255,0.05);
 }
-
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -61,7 +70,6 @@ body {
   font-family: inherit;
 }
 .btn-primary:hover { background: #5b4bd5; }
-
 .btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -78,7 +86,6 @@ body {
   font-family: inherit;
 }
 .btn-secondary:hover { border-color: #6C5CE7; color: #6C5CE7; }
-
 .table-header {
   text-align: left;
   padding: 0.625rem 0.75rem;
@@ -89,12 +96,10 @@ body {
   letter-spacing: 0.05em;
   border-bottom: 1px solid #f3f4f6;
 }
-
 .table-cell {
   padding: 0.75rem;
   font-size: 0.875rem;
 }
-
 .table-row {
   transition: background 0.15s;
   cursor: pointer;
