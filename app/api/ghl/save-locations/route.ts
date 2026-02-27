@@ -25,9 +25,13 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { cookies: { getAll() { return cookieStore.getAll(); } } }
     );
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
 
-    const agencyId = user?.id || null;
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const agencyId = user.id;
     const errors: any[] = [];
     let saved = 0;
 
@@ -39,14 +43,13 @@ export async function POST(request: Request) {
           ghl_location_name: loc.name,
           access_token: token,
           is_activated: false,
-          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
         { onConflict: "ghl_location_id" }
       );
 
       if (error) {
-        errors.push({ locationId: loc.id, error: error.message, code: error.code, details: error.details });
+        errors.push({ locationId: loc.id, error: error.message });
       } else {
         saved++;
       }
@@ -56,12 +59,11 @@ export async function POST(request: Request) {
       success: errors.length === 0,
       saved,
       totalErrors: errors.length,
-      errors: errors.slice(0, 5),
-      debug: { userId: agencyId, authError: authError?.message || null },
+      errors: errors.slice(0, 3),
     });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message || "Internal error", stack: err.stack },
+      { error: err.message || "Internal error" },
       { status: 500 }
     );
   }
