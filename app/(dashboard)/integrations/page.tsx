@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link2, Check, Eye, EyeOff, Trash2, ExternalLink, Building2, Loader2, ToggleLeft, ToggleRight } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface GHLLocation {
   id: string;
@@ -16,9 +17,50 @@ export default function IntegrationsPage() {
   const [showToken, setShowToken] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [locations, setLocations] = useState<GHLLocation[]>([]);
   const [saving, setSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("");
+  const [storedToken, setStoredToken] = useState("");
+
+  const supabase = createSupabaseBrowserClient();
+
+  useEffect(() => {
+    checkExistingConnection();
+  }, []);
+
+  async function checkExistingConnection() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setPageLoading(false); return; }
+
+      const { data, error } = await supabase
+        .from("ghl_connections")
+        .select("ghl_location_id, ghl_location_name, access_token, is_activated")
+        .eq("agency_id", user.id)
+        .order("ghl_location_name", { ascending: true });
+
+      if (error || !data || data.length === 0) {
+        setPageLoading(false);
+        return;
+      }
+
+      const savedToken = data[0]?.access_token || "";
+      setStoredToken(savedToken);
+      setToken(savedToken);
+      setLocations(data.map((loc: any) => ({
+        id: loc.ghl_location_id,
+        name: loc.ghl_location_name,
+        enabled: true,
+      })));
+      setConnected(true);
+    } catch (err) {
+      console.error("Error checking connection:", err);
+    } finally {
+      setPageLoading(false);
+    }
+  }
 
   async function handleConnect() {
     if (!token.trim()) { setError("Please enter your Agency Private Integration token"); return; }
@@ -35,7 +77,24 @@ export default function IntegrationsPage() {
       setLocations(data.locations.map((loc: any) => ({ ...loc, enabled: true })));
       setConnected(true);
       setLoading(false);
-    } catch (err) { setError("Failed to connect. Please try again."); setLoading(false); }
+
+      // Auto-save locations
+      setSaving(true);
+      setSavedMessage("");
+      const saveRes = await fetch("/api/ghl/save-locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token.trim(), locations: data.locations.filter((l: any) => true) }),
+      });
+      const saveData = await saveRes.json();
+      if (saveData.success) {
+        setSavedMessage(`${saveData.saved} locations saved successfully!`);
+        setStoredToken(token.trim());
+      } else {
+        setError(saveData.errors?.[0]?.error || "Failed to save some locations");
+      }
+      setSaving(false);
+    } catch (err) { setError("Failed to connect. Please try again."); setLoading(false); setSaving(false); }
   }
 
   function toggleLocation(id: string) {
@@ -44,20 +103,61 @@ export default function IntegrationsPage() {
 
   async function handleSaveLocations() {
     setSaving(true);
+    setSavedMessage("");
+    setError("");
     try {
       const res = await fetch("/api/ghl/save-locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: token.trim(), locations: locations.filter((loc) => loc.enabled) }),
+        body: JSON.stringify({ token: token.trim() || storedToken, locations: locations.filter((loc) => loc.enabled) }),
       });
-      if (!res.ok) { const data = await res.json(); setError(data.error || "Failed to save"); }
+      const data = await res.json();
+      if (data.success) {
+        setSavedMessage(`${data.saved} locations saved!`);
+      } else {
+        setError(data.errors?.[0]?.error || "Failed to save");
+      }
       setSaving(false);
     } catch (err) { setError("Failed to save."); setSaving(false); }
   }
 
-  function handleDisconnect() { setToken(""); setConnected(false); setLocations([]); setError(""); }
+  async function handleDisconnect() {
+    const confirmed = window.confirm("This will remove all location connections. Are you sure?");
+    if (!confirmed) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase
+          .from("ghl_connections")
+          .delete()
+          .eq("agency_id", user.id);
+        if (error) console.error("Delete error:", error);
+      }
+    } catch (err) {
+      console.error("Disconnect error:", err);
+    }
+
+    setToken("");
+    setStoredToken("");
+    setConnected(false);
+    setLocations([]);
+    setError("");
+    setSavedMessage("");
+  }
 
   const enabledCount = locations.filter((l) => l.enabled).length;
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={28} className="animate-spin text-brand-500" />
+          <span className="text-sm text-gray-400">Loading integrations...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-7">
@@ -89,8 +189,21 @@ export default function IntegrationsPage() {
                   <Check size={16} color="#00b894" />
                   <span className="text-sm font-semibold" style={{ color: "#00b894" }}>Agency connected successfully</span>
                 </div>
-                <p className="text-xs text-gray-400">Token: {token.slice(0, 12)}...{token.slice(-4)}</p>
+                <p className="text-xs text-gray-400">Token: {(token || storedToken).slice(0, 12)}...{(token || storedToken).slice(-4)}</p>
               </div>
+
+              {savedMessage && (
+                <div className="rounded-xl px-4 py-2.5 mb-4 text-xs font-semibold" style={{ backgroundColor: "#00b89410", color: "#00b894", border: "1px solid #00b89420" }}>
+                  {savedMessage}
+                </div>
+              )}
+
+              {saving && (
+                <div className="rounded-xl px-4 py-2.5 mb-4 text-xs font-semibold flex items-center gap-2" style={{ backgroundColor: "#6C5CE710", color: "#6C5CE7", border: "1px solid #6C5CE720" }}>
+                  <Loader2 size={13} className="animate-spin" />
+                  Saving locations...
+                </div>
+              )}
 
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-3">
@@ -107,7 +220,6 @@ export default function IntegrationsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-800 truncate">{loc.name}</p>
-                        {(loc.city || loc.state) && <p className="text-xs text-gray-400 truncate">{[loc.city, loc.state].filter(Boolean).join(", ")}</p>}
                       </div>
                       <div className="shrink-0">
                         {loc.enabled ? <ToggleRight size={24} color="#6C5CE7" /> : <ToggleLeft size={24} color="#ccc" />}
