@@ -13,49 +13,81 @@ export async function POST(request: Request) {
 
     if (messageType === "end-of-call-report") {
       const call = body.message?.call || body.call || {};
-      const metadata = call.metadata || {};
+      const assistantId = call.assistantId || null;
+
+      // Look up agency and location from the assistant ID
+      let agencyId = null;
+      let ghlLocationId = null;
+
+      if (assistantId) {
+        const { data: conn } = await supabase
+          .from("ghl_connections")
+          .select("agency_id, ghl_location_id")
+          .eq("vapi_assistant_id", assistantId)
+          .single();
+
+        if (conn) {
+          agencyId = conn.agency_id;
+          ghlLocationId = conn.ghl_location_id;
+        }
+      }
+
+      const durationSeconds = Math.round(call.duration || 0);
+      const costCents = Math.round((call.cost || 0) * 100);
 
       const callLog = {
-        agency_id: metadata.agency_id || null,
-        ghl_location_id: metadata.ghl_location_id || null,
+        agency_id: agencyId,
+        ghl_location_id: ghlLocationId,
         vapi_call_id: call.id,
         contact_phone: call.customer?.number || "",
         direction: call.type === "inboundPhoneCall" ? "inbound" : "outbound",
         status: call.endedReason === "customer-ended-call" || call.endedReason === "assistant-ended-call" ? "completed" : call.endedReason || "completed",
-        duration_seconds: Math.round(call.duration || 0),
-        cost_cents: Math.round((call.cost || 0) * 100),
+        duration_seconds: durationSeconds,
+        cost_cents: costCents,
         transcript: body.message?.transcript || body.transcript || "",
         summary: body.message?.summary || body.summary || "",
         recording_url: body.message?.recordingUrl || body.recordingUrl || "",
         sentiment: body.message?.analysis?.sentiment || null,
         appointment_booked: false,
-        metadata: { endedReason: call.endedReason, assistantId: call.assistantId, analysis: body.message?.analysis || {} },
+        metadata: {
+          endedReason: call.endedReason,
+          assistantId: assistantId,
+          analysis: body.message?.analysis || {},
+        },
       };
 
       await supabase.from("call_logs").insert(callLog);
 
-      if (metadata.agency_id) {
+      // Update usage records
+      if (agencyId) {
         const now = new Date();
         const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
         const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
 
         const { data: existing } = await supabase
-          .from("usage_records").select("*")
-          .eq("agency_id", metadata.agency_id).eq("period_start", periodStart).single();
+          .from("usage_records")
+          .select("*")
+          .eq("agency_id", agencyId)
+          .eq("period_start", periodStart)
+          .single();
 
         if (existing) {
           await supabase.from("usage_records").update({
             total_calls: (existing.total_calls || 0) + 1,
-            total_minutes: (existing.total_minutes || 0) + Math.ceil(callLog.duration_seconds / 60),
-            vapi_cost_cents: (existing.vapi_cost_cents || 0) + callLog.cost_cents,
-            total_cost_cents: (existing.total_cost_cents || 0) + callLog.cost_cents,
+            total_minutes: (existing.total_minutes || 0) + Math.ceil(durationSeconds / 60),
+            vapi_cost_cents: (existing.vapi_cost_cents || 0) + costCents,
+            total_cost_cents: (existing.total_cost_cents || 0) + costCents,
             updated_at: new Date().toISOString(),
           }).eq("id", existing.id);
         } else {
           await supabase.from("usage_records").insert({
-            agency_id: metadata.agency_id, period_start: periodStart, period_end: periodEnd,
-            total_calls: 1, total_minutes: Math.ceil(callLog.duration_seconds / 60),
-            vapi_cost_cents: callLog.cost_cents, total_cost_cents: callLog.cost_cents,
+            agency_id: agencyId,
+            period_start: periodStart,
+            period_end: periodEnd,
+            total_calls: 1,
+            total_minutes: Math.ceil(durationSeconds / 60),
+            vapi_cost_cents: costCents,
+            total_cost_cents: costCents,
           });
         }
       }
